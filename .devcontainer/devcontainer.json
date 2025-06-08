@@ -1,0 +1,22 @@
+{
+    "name": "Go Dev Container",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "target": "build"
+    },
+    "postCreateCommand": "make pre-commit-install",
+    "extensions": [
+        "golang.go",
+        "ms-vscode.vscode-spell-checker",
+        "ms-azuretools.vscode-docker",
+	    "GitHub.vscode-github-actions",
+        "redhat.vscode-yaml",
+        "ms-vscode.makefile-tools"
+    ],
+    "settings": {
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.useLanguageServer": true,
+        "go.gopath": "/go",
+        "go.goroot": "/usr/local/go"
+    }
+}
