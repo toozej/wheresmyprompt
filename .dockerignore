@@ -14,5 +14,5 @@ checkmake.ini
 Makefile
 Dockerfile*
 docker-compose.yml
-golang-starter
-golang-starter.key
+wheresmyprompt
+wheresmyprompt.key

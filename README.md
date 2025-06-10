@@ -1,55 +1,202 @@
-# golang-starter
+# wheresmyprompt
 
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/toozej/golang-starter)
-[![Go Report Card](https://goreportcard.com/badge/github.com/toozej/golang-starter)](https://goreportcard.com/report/github.com/toozej/golang-starter)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/toozej/golang-starter/cicd.yaml)
-![Docker Pulls](https://img.shields.io/docker/pulls/toozej/golang-starter)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/toozej/golang-starter/total)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/toozej/wheresmyprompt)
+[![Go Report Card](https://goreportcard.com/badge/github.com/toozej/wheresmyprompt)](https://goreportcard.com/report/github.com/toozej/wheresmyprompt)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/toozej/wheresmyprompt/cicd.yaml)
+![Docker Pulls](https://img.shields.io/docker/pulls/toozej/wheresmyprompt)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/toozej/wheresmyprompt/total)
 
-Golang starter template
+![Screenshot](img/avatar.webp)
 
-## features of this starter template
-- follows common Golang best practices in terms of repo/project layout, and includes explanations of what goes where in README files
-- Cobra library for CLI handling, and Viper library for reading config files already plugged in and ready to expand upon
-- Goreleaser to build Docker images and most standard package types across Linux, MacOS and Windows
-    - also includes auto-generated manpages and shell autocompletions
-- Makefile for easy building, deploying, testing, updating, etc. both Dockerized and using locally installed Golang toolchain
-- docker-compose project for easily hosting built Dockerized Golang project, with optional support for Golang web services
-- scripts to make using the starter template easy, and to update the Golang version when a new one comes out
-- built-in security scans, vulnerability warnings and auto-updates via Dependabot and GitHub Actions
-- auto-generated documentation
-- pre-commit hooks for ensuring formatting, linting, security checks, etc.
+- pronounced with a Shrek accent
+- search prompts stored in a Markdown file (optionally grabbed from Simplenote Note), and use selected prompt as a LLM system prompt
+- designed to be used in a LLM tool pipeline
+	- [files2prompt](github.com/toozej/files2prompt) or [files-to-prompt](github.com/simonw/files-to-prompt) to gather workspace
+	- [wheresmyprompt](github.com/toozej/wheresmyprompt) to set a system prompt
+	- [llm](github.com/simonw/llm) to operate with local or remote large language models
+   - [waffles](https://github.com/toozej/waffles) to orchestrate the above tools in an easy-to-use pipeline
+- cute mascot named ["Gogre"](img/avatar.webp)
 
-## changes required to use this as a starter template
-- generate a GitHub fine-grained access token from https://github.com/settings/tokens?type=beta (used in repo as "GITHUB_TOKEN" and in GitHub Actions Secrets as "GH_TOKEN") with the following read/write permissions:
-    - actions
-    - attestations
-    - code scanning alerts
-    - commit statuses
-    - contents
-    - dependabot alerts
-    - dependabot secrets
-    - deployments
-    - environments
-    - issues
-    - pages
-    - pull requests
-    - repository security advisories
-    - secret scanning alerts
-    - secrets
-    - webhooks
-    - workflows
-- run `use_starter.sh` script to rename project files, generate Cosign artifacts, gather and upload secrets to GitHub Actions, etc.
-    - run `./scripts/use_starter.sh $NEW_PROJECT_NAME_GOES_HERE`
-    - to rename with a different GitHub username `./scripts/use_starter.sh $NEW_PROJECT_NAME_GOES_HERE $GITHUB_USERNAME_GOES_HERE`
-- set up new repository in quay.io web console
-    - (DockerHub and GitHub Container Registry do this automatically on first push/publish)
-    - name must match Git repo name
-    - grant robot user with username stored in QUAY_USERNAME "write" permissions (your quay.io account should already have admin permissions)
-- set built packages visibility in GitHub packages to public
-    - navigate to https://github.com/users/$USERNAME/packages/container/$REPO/settings
-    - scroll down to "Danger Zone"
-    - change visibility to public
+## 🚀 Features
 
-## changes required to update golang version
-- `make update-golang-version`
+- **TUI Mode**: Interactive fuzzy search with clipboard integration
+- **CLI Mode**: Command-line search with stdout output
+- **Simplenote Integration**: Fetch prompts from your "LLM Prompts" note
+- **Local File Support**: Work with local markdown files
+- **Section Support**: Organize and search within prompt sections
+- **Cross-platform Clipboard**: Automatic clipboard integration
+
+## 🛠️ Prerequisites
+
+### Required Binaries
+
+1. **1Password CLI (`op`)**: For secure credential management
+   ```bash
+   # macOS
+   brew install 1password-cli
+   
+   # Linux/Windows: Download from https://developer.1password.com/docs/cli/get-started/
+   ```
+
+2. **Simplenote CLI (`sncli`)**: For Simplenote integration
+   ```bash
+   pip install sncli
+   ```
+
+3. (Or optionally, run `make local-deps` to install above dependencies)
+
+### Environment Variables
+
+Set these via 1Password CLI or directly:
+
+```bash
+export SN_NOTE="LLM Prompts"           # Note title in Simplenote
+export SN_USERNAME="your@email.com"   # Simplenote username
+export SN_PASSWORD="your_password"    # Simplenote password
+export FILEPATH="/path/to/local.md"   # Optional: use local file instead
+```
+
+## 📦 Installation
+
+```bash
+git clone https://github.com/toozej/wheresmyprompt
+cd wheresmyprompt
+make install
+```
+
+## 🖥️ Usage
+
+### TUI Mode (Default)
+
+Interactive fuzzy search interface:
+
+```bash
+wheresmyprompt
+```
+
+- Type to search prompts
+- Use ↑/↓ or k/j to navigate
+- Press Enter to copy selected prompt to clipboard
+- Press Ctrl+C or Esc to quit
+
+### CLI Mode
+
+#### Search and display all prompts:
+```bash
+wheresmyprompt -s golang
+```
+
+#### One-shot mode (best match to stdout):
+```bash
+wheresmyprompt -o "code review"
+```
+
+#### Search within specific section:
+```bash
+wheresmyprompt -s golang "error handling"
+```
+
+#### Add new prompt (planned feature):
+```bash
+wheresmyprompt -w "Write unit tests for this Go function"
+```
+
+## 📝 Note Format
+
+Your Simplenote "LLM Prompts" note should be structured like this:
+
+```markdown
+# LLM Prompts
+
+## Golang
+
+### Code Review Prompt
+Review this Go code for best practices, potential bugs, and performance issues. Pay attention to error handling, memory usage, and concurrency patterns.
+
+### Unit Test Generator
+Generate comprehensive unit tests for the following Go function. Include edge cases, error conditions, and table-driven tests where appropriate.
+
+## Python
+
+### Data Analysis Helper
+Analyze this dataset and provide insights. Create visualizations using matplotlib or seaborn, and suggest statistical tests if applicable.
+
+### Code Optimization
+Optimize this Python code for better performance. Consider algorithmic improvements, memory usage, and Pythonic patterns.
+
+## Writing
+
+### Technical Documentation
+Write clear, comprehensive documentation for this technical concept. Include examples, use cases, and common pitfalls.
+
+### Email Templates
+Draft a professional email for [specific situation]. Keep it concise, clear, and actionable.
+```
+
+## ⚙️ Configuration Options
+
+### Environment Variables
+
+- `SN_NOTE`: Simplenote note title (default: "LLM Prompts")
+- `SN_CREDENTIAL`: Your Simplenote credential 1password item
+- `SN_USERNAME`: Your Simplenote username, or 1password username field name
+- `SN_PASSWORD`: Your Simplenote password, or 1password password field name
+- `FILEPATH`: Path to local markdown file (skips Simplenote if set)
+
+### 1Password Integration
+
+Store credentials securely in 1Password and populate environment variables:
+
+```bash
+# Set up 1Password CLI authentication
+eval $(op signin)
+
+# Use 1Password references in your shell profile
+vim .env
+# set SN_CREDENTIAL, SN_USERNAME, and SN_PASSWORD environment variables
+```
+
+## 🏷️ Command Line Flags
+
+- `-d, --debug`: Enable debug logging
+- `-o, --one-shot`: Select best match and print to stdout
+- `-s, --section`: Search within specific section
+- `-w, --write`: Add new prompt to note (planned)
+
+## 💡 Examples
+
+### TUI Search
+```bash
+# Launch interactive search
+wheresmyprompt
+
+# Search and navigate with keyboard
+# - Type "golang error" to filter
+# - Use arrows to select
+# - Press Enter to copy to clipboard
+```
+
+### CLI Search
+```bash
+# Show all Golang prompts
+wheresmyprompt -s golang
+
+# Find best match for "unit test"
+wheresmyprompt -o "unit test"
+
+# Search for "review" in Python section
+wheresmyprompt -s python "review"
+```
+
+### File-based Usage
+```bash
+# Use local markdown file instead of Simplenote
+export FILEPATH="./my-prompts.md"
+wheresmyprompt
+```
+
+## 🖥️ Supported Platforms
+
+- **macOS**: Uses `pbcopy` for clipboard
+- **Linux**: Uses `xclip` or `xsel` for clipboard
+- **Windows**: Uses `clip` for clipboard

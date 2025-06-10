@@ -1,7 +1,7 @@
 ---
 version: 2
 
-project_name: golang-starter
+project_name: wheresmyprompt
 
 env:
   - GO111MODULE=on
@@ -40,7 +40,7 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate
         }} -X main.builtBy=goreleaser
     main: ./
-    binary: golang-starter
+    binary: wheresmyprompt
 
 universal_binaries:
   - replace: false
@@ -78,14 +78,14 @@ changelog:
 
 dockers:
   - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-amd64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-amd64'
     dockerfile: Dockerfile.goreleaser
     use: buildx
     build_flag_templates:
       - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
+      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
       - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
       - "--label=io.artifacthub.package.license=GPLv3"
       - "--label=org.opencontainers.image.description=Golang starter template"
@@ -98,14 +98,14 @@ dockers:
     extra_files:
       - scripts/goreleaser_entrypoint.sh
   - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-arm64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-arm64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-arm64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-arm64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-arm64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-arm64'
     dockerfile: Dockerfile.goreleaser
     use: buildx
     build_flag_templates:
       - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
+      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
       - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
       - "--label=io.artifacthub.package.license=GPLv3"
       - "--label=org.opencontainers.image.description=Golang starter template"
@@ -119,14 +119,14 @@ dockers:
     extra_files:
       - scripts/goreleaser_entrypoint.sh
   - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
     dockerfile: Dockerfile.goreleaser.distroless
     use: buildx
     build_flag_templates:
       - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
+      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
       - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
       - "--label=io.artifacthub.package.license=GPLv3"
       - "--label=org.opencontainers.image.description=Golang starter template"
@@ -139,14 +139,14 @@ dockers:
     extra_files:
       - scripts/goreleaser_entrypoint.sh
   - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
     dockerfile: Dockerfile.goreleaser.distroless
     use: buildx
     build_flag_templates:
       - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
+      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
       - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
       - "--label=io.artifacthub.package.license=GPLv3"
       - "--label=org.opencontainers.image.description=Golang starter template"
@@ -162,56 +162,56 @@ dockers:
 
 docker_manifests:
   # tagged
-  - name_template: 'toozej/golang-starter:{{ .Tag }}'
+  - name_template: 'toozej/wheresmyprompt:{{ .Tag }}'
     image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:{{ .Tag }}'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-arm64'
+  - name_template: 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}'
     image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:{{ .Tag }}'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-arm64'
+  - name_template: 'quay.io/toozej/wheresmyprompt:{{ .Tag }}'
     image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'toozej/golang-starter:{{ .Tag }}-distroless'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-arm64'
+  - name_template: 'toozej/wheresmyprompt:{{ .Tag }}-distroless'
     image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
+  - name_template: 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless'
     image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
+  - name_template: 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless'
     image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
   # latest
-  - name_template: 'toozej/golang-starter:latest'
+  - name_template: 'toozej/wheresmyprompt:latest'
     image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:latest'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-arm64'
+  - name_template: 'ghcr.io/toozej/wheresmyprompt:latest'
     image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:latest'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-arm64'
+  - name_template: 'quay.io/toozej/wheresmyprompt:latest'
     image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-arm64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-amd64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-arm64'
   # distroless
-  - name_template: 'toozej/golang-starter:distroless'
+  - name_template: 'toozej/wheresmyprompt:distroless'
     image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:distroless'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
+  - name_template: 'ghcr.io/toozej/wheresmyprompt:distroless'
     image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:distroless'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'ghcr.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
+  - name_template: 'quay.io/toozej/wheresmyprompt:distroless'
     image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-amd64'
+      - 'quay.io/toozej/wheresmyprompt:{{ .Tag }}-distroless-arm64'
 
 archives:
   - name_template: >-
@@ -232,33 +232,33 @@ archives:
 nfpms:
   - file_name_template: '{{ .ConventionalFileName }}'
     id: packages
-    homepage: https://github.com/toozej/golang-starter
+    homepage: https://github.com/toozej/wheresmyprompt
     description: |-
       Golang starter template
     maintainer: toozej
     license: GPLv3
-    vendor: golang-starter
+    vendor: wheresmyprompt
     bindir: /usr/bin
     section: utils
     contents:
-      - src: ./completions/golang-starter.bash
-        dst: /usr/share/bash-completion/completions/golang-starter
+      - src: ./completions/wheresmyprompt.bash
+        dst: /usr/share/bash-completion/completions/wheresmyprompt
         file_info:
           mode: 0644
-      - src: ./completions/golang-starter.fish
-        dst: /usr/share/fish/completions/golang-starter.fish
+      - src: ./completions/wheresmyprompt.fish
+        dst: /usr/share/fish/completions/wheresmyprompt.fish
         file_info:
           mode: 0644
-      - src: ./completions/golang-starter.zsh
-        dst: /usr/share/zsh/vendor-completions/_golang-starter
+      - src: ./completions/wheresmyprompt.zsh
+        dst: /usr/share/zsh/vendor-completions/_wheresmyprompt
         file_info:
           mode: 0644
-      - src: ./manpages/golang-starter.1.gz
-        dst: /usr/share/man/man1/golang-starter.1.gz
+      - src: ./manpages/wheresmyprompt.1.gz
+        dst: /usr/share/man/man1/wheresmyprompt.1.gz
         file_info:
           mode: 0644
       - src: ./LICENSE
-        dst: /usr/share/doc/golang-starter/copyright
+        dst: /usr/share/doc/wheresmyprompt/copyright
         file_info:
           mode: 0644
     formats:
@@ -305,4 +305,4 @@ milestones:
 
 release:
   footer: |
-    **Full Changelog**: https://github.com/toozej/golang-starter/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/toozej/wheresmyprompt/compare/{{ .PreviousTag }}...{{ .Tag }}

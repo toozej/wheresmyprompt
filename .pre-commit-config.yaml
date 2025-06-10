@@ -59,6 +59,7 @@ repos:
       - id: go-sec-mod
       - id: go-staticcheck-mod
       - id: go-critic
+        args: ["-disable=sloppyTypeAssert"]
       # disabled until https://github.com/orijtech/structslop/pull/63 is merged
       # - id: go-structslop-mod
       - id: go-fmt
