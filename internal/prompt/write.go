@@ -115,46 +115,48 @@ func addPromptToFile(filepath, title, content, section string) error {
 		existingContent = string(data)
 	}
 
-	// Parse existing content to understand structure
-	lines := strings.Split(existingContent, "\n")
+	// Parse existing content into sections using new parser
+	sections, err := parseMarkdownIntoSections(existingContent)
+	if err != nil {
+		return fmt.Errorf("failed to parse markdown: %w", err)
+	}
+	promptData := gatherPromptData(sections)
+
 	var newContent strings.Builder
-
 	sectionFound := false
+
 	if section != "" {
-		sectionHeader := "## " + section
-
-		// Look for existing section
-		for i, line := range lines {
-			newContent.WriteString(line + "\n")
-
-			if strings.TrimSpace(line) == sectionHeader {
+		// Try to find the section and append prompt
+		for i, sec := range promptData.Sections {
+			if len(sec.Headings) > 0 && sec.Headings[len(sec.Headings)-1] == section {
 				sectionFound = true
-				// Add content after this section header
-				// Find the end of this section (next ## or end of file)
-				j := i + 1
-				for j < len(lines) && !strings.HasPrefix(strings.TrimSpace(lines[j]), "## ") {
-					newContent.WriteString(lines[j] + "\n")
-					j++
+				// Write all sections up to this one
+				for j := 0; j < i; j++ {
+					writeSection(&newContent, promptData.Sections[j])
 				}
-
+				// Write this section header
+				writeSectionHeader(&newContent, sec)
+				// Write existing lines
+				for _, line := range sec.Lines {
+					newContent.WriteString(line + "\n")
+				}
 				// Add new prompt
 				newContent.WriteString("\n### " + title + "\n")
 				newContent.WriteString(content + "\n\n")
-
-				// Add remaining lines
-				for k := j; k < len(lines); k++ {
-					newContent.WriteString(lines[k] + "\n")
+				// Write remaining sections
+				for j := i + 1; j < len(promptData.Sections); j++ {
+					writeSection(&newContent, promptData.Sections[j])
 				}
 				break
 			}
 		}
-
-		// If section not found, add it at the end
 		if !sectionFound {
+			// Section not found, preserve existing content and append new section at end
+			newContent.WriteString(existingContent)
 			if !strings.HasSuffix(existingContent, "\n") {
 				newContent.WriteString("\n")
 			}
-			newContent.WriteString("\n## " + section + "\n\n")
+			newContent.WriteString("\n\n## " + section + "\n\n")
 			newContent.WriteString("### " + title + "\n")
 			newContent.WriteString(content + "\n")
 		}
@@ -170,6 +172,21 @@ func addPromptToFile(filepath, title, content, section string) error {
 
 	// Write back to file
 	return os.WriteFile(filepath, []byte(newContent.String()), 0600)
+}
+
+// writeSectionHeader writes the markdown header for a section
+func writeSectionHeader(b *strings.Builder, sec Section) {
+	for i, heading := range sec.Headings {
+		b.WriteString(strings.Repeat("#", i+1) + " " + heading + "\n")
+	}
+}
+
+// writeSection writes the full section (header + lines)
+func writeSection(b *strings.Builder, sec Section) {
+	writeSectionHeader(b, sec)
+	for _, line := range sec.Lines {
+		b.WriteString(line + "\n")
+	}
 }
 
 // addPromptToSimplenote adds the prompt to the Simplenote note

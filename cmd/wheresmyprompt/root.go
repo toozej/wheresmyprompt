@@ -1,6 +1,32 @@
-// Package cmd provides the command-line interface for wheresmyprompt.
-// It handles argument parsing, configuration, and orchestrates the main application logic
-// for searching, managing, and copying LLM prompts.
+// Package cmd provides command-line interface functionality for the wheresmyprompt application.
+//
+// This package implements the root command and manages the command-line interface
+// using the cobra library. It handles configuration, logging setup, and command
+// execution for the wheresmyprompt prompt management application.
+//
+// The package integrates with several components:
+//   - Configuration management through pkg/config
+//   - Prompt processing through internal/prompt
+//   - TUI interface through internal/tui
+//   - Manual pages through pkg/man
+//   - Version information through pkg/version
+//   - Language detection through pkg/languaged
+//
+// Key features:
+//   - Fuzzy search and management of LLM prompts
+//   - Support for both Simplenote and local file sources
+//   - Interactive TUI mode and CLI mode operation
+//   - Clipboard integration for prompt copying
+//   - Section-based prompt organization
+//   - Debug logging support
+//
+// Example usage:
+//
+//	import "github.com/toozej/wheresmyprompt/cmd/wheresmyprompt"
+//
+//	func main() {
+//		cmd.Execute()
+//	}
 package cmd
 
 import (
@@ -9,17 +35,30 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/toozej/wheresmyprompt/internal/prompt"
 	"github.com/toozej/wheresmyprompt/internal/tui"
 	"github.com/toozej/wheresmyprompt/pkg/config"
+	"github.com/toozej/wheresmyprompt/pkg/languaged"
 	"github.com/toozej/wheresmyprompt/pkg/man"
 	"github.com/toozej/wheresmyprompt/pkg/version"
 )
 
-var conf config.Config
+// conf holds the application configuration loaded from environment variables.
+// It is populated during package initialization and can be modified by command-line flags.
+var (
+	conf config.Config
+	// debug controls the logging level for the application.
+	// When true, debug-level logging is enabled through logrus.
+	debug bool
+	// Command-line flags
+	all         bool
+	oneShot     bool
+	oneShotClip bool
+	section     string
+	write       string
+	load        string
+)
 
 var rootCmd = &cobra.Command{
 	Use:              "wheresmyprompt",
@@ -37,13 +76,13 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	// Handle loading prompts from a local file, preferring command line flag over environment variable
-	if (conf.FilePath == "" && viper.GetString("load") != "") || (conf.FilePath != "" && viper.GetString("load") != "") {
-		conf.FilePath = viper.GetString("load")
+	if (conf.FilePath == "" && load != "") || (conf.FilePath != "" && load != "") {
+		conf.FilePath = load
 	}
 
 	// Handle write mode (adding new prompt)
-	if writePrompt := viper.GetString("write"); writePrompt != "" {
-		if err := prompt.WritePrompt(conf, writePrompt, args); err != nil {
+	if write != "" {
+		if err := prompt.WritePrompt(conf, write, args); err != nil {
 			log.Fatal(err)
 		}
 		return
@@ -55,12 +94,26 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 
+	// Determine section to use: command-line flag or detected language
+	sectionToUse := section
+	// However do not auto-detect the section if --all is specified
+	// because that would be confusing (user might expect all sections to be searched).
+	if sectionToUse == "" && !all {
+		if cwd, err := os.Getwd(); err == nil {
+			lang, err := languaged.DetectPrimaryLanguage(cwd)
+			if err == nil && lang != "" {
+				sectionToUse = lang
+			}
+		}
+	}
+	fmt.Println("Using section:", sectionToUse)
+
 	// Handle --all mode
-	if viper.GetBool("all") {
+	if all {
 		if len(args) == 0 {
 			log.Fatal("--all mode requires a search term")
 		}
-		results := prompt.FindAllMatches(prompts, args[0], viper.GetString("section"))
+		results := prompt.FindAllMatches(prompts, args[0], sectionToUse)
 		if len(results) == 0 {
 			fmt.Println("No matches found")
 			os.Exit(1)
@@ -72,11 +125,12 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	// Handle one-shot mode
-	if viper.GetBool("one-shot") {
-		if len(args) == 0 {
-			log.Fatal("one-shot mode requires a search term")
+	if oneShot {
+		query := ""
+		if len(args) > 0 {
+			query = args[0]
 		}
-		result := prompt.FindBestMatch(prompts, args[0], viper.GetString("section"))
+		result := prompt.FindBestMatch(prompts, query, sectionToUse)
 		if result == "" {
 			fmt.Println("No match found")
 			os.Exit(1)
@@ -86,11 +140,12 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	// Handle one-shot-clip mode
-	if viper.GetBool("one-shot-clip") {
-		if len(args) == 0 {
-			log.Fatal("one-shot-clip mode requires a search term")
+	if oneShotClip {
+		query := ""
+		if len(args) > 0 {
+			query = args[0]
 		}
-		result := prompt.FindBestMatch(prompts, args[0], viper.GetString("section"))
+		result := prompt.FindBestMatch(prompts, query, sectionToUse)
 		if result == "" {
 			fmt.Println("No match found")
 			os.Exit(1)
@@ -102,7 +157,7 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 	}
 
 	// Handle section listing
-	if section := viper.GetString("section"); section != "" && len(args) == 0 {
+	if section := sectionToUse; section != "" && len(args) == 0 {
 		results := prompt.GetSectionPrompts(prompts, section)
 		for _, p := range results {
 			fmt.Printf("\n%s\n\n", p)
@@ -117,7 +172,7 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
 			searchTerm = args[0]
 		}
-		results := prompt.SearchPrompts(prompts, searchTerm, viper.GetString("section"))
+		results := prompt.SearchPrompts(prompts, searchTerm, sectionToUse)
 		for _, p := range results {
 			fmt.Printf("\n%s\n\n", p)
 		}
@@ -131,10 +186,7 @@ func rootCmdRun(cmd *cobra.Command, args []string) {
 }
 
 func rootCmdPreRun(cmd *cobra.Command, args []string) {
-	if err := viper.BindPFlags(cmd.Flags()); err != nil {
-		return
-	}
-	if viper.GetBool("debug") {
+	if debug {
 		log.SetLevel(log.DebugLevel)
 	}
 }
@@ -149,22 +201,17 @@ func Execute() {
 }
 
 func init() {
-	_, err := maxprocs.Set()
-	if err != nil {
-		log.Error("Error setting maxprocs: ", err)
-	}
-
 	// Get configuration from environment variables
 	conf = config.GetEnvVars()
 
 	// Create rootCmd-level flags
-	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Enable debug-level logging")
-	rootCmd.Flags().BoolP("all", "a", false, "Show all fuzzy matches for the search term")
-	rootCmd.Flags().BoolP("one-shot", "o", false, "Select best match and print to stdout")
-	rootCmd.Flags().BoolP("one-shot-clip", "c", false, "Select best match and copy to clipboard")
-	rootCmd.Flags().StringP("section", "s", "", "Search within specific section")
-	rootCmd.Flags().StringP("write", "w", "", "Add new prompt to note")
-	rootCmd.Flags().StringP("load", "l", "", "Load a local file of prompts instead of from Simplenote")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug-level logging")
+	rootCmd.Flags().BoolVarP(&all, "all", "a", false, "Show all fuzzy matches for the search term")
+	rootCmd.Flags().BoolVarP(&oneShot, "one-shot", "o", false, "Select best match and print to stdout")
+	rootCmd.Flags().BoolVarP(&oneShotClip, "one-shot-clip", "c", false, "Select best match and copy to clipboard")
+	rootCmd.Flags().StringVarP(&section, "section", "s", "", "Search within specific section")
+	rootCmd.Flags().StringVarP(&write, "write", "w", "", "Add new prompt to note")
+	rootCmd.Flags().StringVarP(&load, "load", "l", "", "Load a local file of prompts instead of from Simplenote")
 
 	// Add sub-commands
 	rootCmd.AddCommand(

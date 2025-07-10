@@ -13,7 +13,8 @@ function handle_error {
 fetch_credentials() {
     echo "Fetching credentials from 1Password..."
 
-    GH_GHCR_TOKEN=$(op item get "github.com" --field ghcr_token --reveal) || handle_error "Failed to fetch GitHub GHCR token."
+    GH_GHCR_TOKEN=$(op item get "github.com" --field ghcr_token --reveal) || handle_error "Failed to fetch GHCR GitHub token."
+    TAP_GITHUB_TOKEN=$(op item get "github.com" --field tap_token --reveal) || handle_error "Failed to fetch Homebrew Tap GitHub token."
     DOCKERHUB_USERNAME=$(op item get "docker.com" --field username) || handle_error "Failed to fetch DockerHub username."
     DOCKERHUB_TOKEN=$(op item get "docker.com" --field token --reveal) || handle_error "Failed to fetch DockerHub token."
     QUAY_USERNAME=$(op item get "Quay.io" --field username) || handle_error "Failed to fetch Quay username."
@@ -24,6 +25,7 @@ fetch_credentials() {
     cat <<EOF >> .env
 GITHUB_USERNAME=${GITHUB_USERNAME}
 GH_GHCR_TOKEN=${GH_GHCR_TOKEN}
+TAP_GITHUB_TOKEN=${TAP_GITHUB_TOKEN}
 DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}
 DOCKERHUB_TOKEN=${DOCKERHUB_TOKEN}
 QUAY_USERNAME=${QUAY_USERNAME}

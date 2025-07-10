@@ -1,5 +1,5 @@
 # setup project and deps
-FROM golang:1.24-bookworm AS init
+FROM golang:1.25-bookworm AS init
 
 WORKDIR /go/wheresmyprompt/
 
@@ -20,6 +20,9 @@ RUN go test -coverprofile c.out -v ./... && \
 # build binary
 FROM init AS build
 ARG LDFLAGS
+
+# Install coreutils for sleep and other utilities utilized in devcontainer
+RUN apt-get update && apt-get install --no-install-recommends -y coreutils=9.1-1
 
 RUN CGO_ENABLED=0 go build -ldflags="${LDFLAGS}"
 

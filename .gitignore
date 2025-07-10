@@ -26,5 +26,13 @@ vendor/
 # Generated directories
 completions/
 manpages/
-docs/
 dist/
+docs/diagrams/go-diagrams/
+profiles/
+
+# Temporary files
+prompt.txt
+prompt.md
+TASKS.md
+.kiro/
+.kilocode/

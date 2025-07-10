@@ -1,6 +1,7 @@
 # runtime image
 FROM scratch
 # Copy our static executable.
-COPY wheresmyprompt /go/bin/wheresmyprompt
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/wheresmyprompt /go/bin/wheresmyprompt
 # Run the binary.
 ENTRYPOINT ["/go/bin/wheresmyprompt"]

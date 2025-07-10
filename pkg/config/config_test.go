@@ -2,14 +2,26 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
-
-	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 )
 
 func TestGetEnvVars(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "config_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Save original working directory
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	defer func() {
+		_ = os.Chdir(originalWd)
+	}()
 
 	tests := []struct {
 		name         string
@@ -18,26 +30,25 @@ func TestGetEnvVars(t *testing.T) {
 		expectError  bool
 		expectConfig Config
 	}{
-		// TODO fix valid environment variables test
-		// {
-		// 	name: "Valid environment variables",
-		// 	mockEnv: map[string]string{
-		// 		"SN_NOTE":     "Test Note",
-		// 		"SN_USERNAME": "testuser",
-		// 		"SN_PASSWORD": "testpass",
-		// 		"FILEPATH":    "/tmp/testfile.txt",
-		// 	},
-		// 	expectError: false,
-		// 	expectConfig: Config{
-		// 		SNNote:     "Test Note",
-		// 		SNUsername: "testuser",
-		// 		SNPassword: "testpass",
-		// 		FilePath:   "/tmp/testfile.txt",
-		// 	},
-		// },
+		{
+			name: "Valid environment variables",
+			mockEnv: map[string]string{
+				"SN_NOTE":     "Test Note",
+				"SN_USERNAME": "testuser",
+				"SN_PASSWORD": "testpass",
+				"FILEPATH":    "/tmp/testfile.txt",
+			},
+			expectError: false,
+			expectConfig: Config{
+				SNNote:     "Test Note",
+				SNUsername: "testuser",
+				SNPassword: "testpass",
+				FilePath:   "/tmp/testfile.txt",
+			},
+		},
 		{
 			name:        "Valid .env file",
-			mockEnvFile: "sn_note=LLM Prompts\nsn_username=username\nsn_password=password\nfilepath=/tmp/envfile.txt\n",
+			mockEnvFile: "SN_NOTE=LLM Prompts\nSN_USERNAME=username\nSN_PASSWORD=password\nFILEPATH=/tmp/envfile.txt\n",
 			expectError: false,
 			expectConfig: Config{
 				SNNote:     "LLM Prompts",
@@ -60,7 +71,16 @@ func TestGetEnvVars(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			viper.Reset()
+			// Change to temp directory for this test
+			if err := os.Chdir(tempDir); err != nil {
+				t.Fatalf("Failed to change to temp dir: %v", err)
+			}
+
+			// Clean up environment variables from previous tests
+			envVars := []string{"SN_NOTE", "SN_USERNAME", "SN_PASSWORD", "FILEPATH"}
+			for _, envVar := range envVars {
+				os.Unsetenv(envVar)
+			}
 
 			// Mock environment variables
 			for key, value := range tt.mockEnv {
@@ -70,14 +90,11 @@ func TestGetEnvVars(t *testing.T) {
 
 			// Mock .env file if applicable
 			if tt.mockEnvFile != "" {
-				if err := afero.WriteFile(fs, ".env", []byte(tt.mockEnvFile), 0600); err != nil {
+				envPath := filepath.Join(tempDir, ".env")
+				if err := os.WriteFile(envPath, []byte(tt.mockEnvFile), 0600); err != nil {
 					t.Fatalf("Failed to write mock .env file: %v", err)
 				}
-				viper.SetFs(fs)
-				viper.SetConfigFile(".env")
-				if err := viper.ReadInConfig(); err != nil {
-					t.Fatalf("failed to read mock .env file: %v", err)
-				}
+				defer os.Remove(envPath)
 			}
 
 			conf := GetEnvVars()

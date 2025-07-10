@@ -24,6 +24,7 @@
 - **Simplenote Integration**: Fetch prompts from your "LLM Prompts" note
 - **Local File Support**: Work with local markdown files
 - **Section Support**: Organize and search within prompt sections
+- **Section Auto-Detection**: If the `--section` flag is not provided, wheresmyprompt will automatically detect the primary programming language of your current directory and use it as the section
 - **Cross-platform Clipboard**: Automatic clipboard integration
 
 ## 🛠️ Prerequisites
@@ -84,6 +85,9 @@ wheresmyprompt
 #### Search and display all prompts:
 ```bash
 wheresmyprompt -s golang
+# or simply
+wheresmyprompt
+# (auto-detects section based on repo language if -s/--section is not specified)
 ```
 
 #### One-shot mode (best match to stdout):
@@ -94,6 +98,9 @@ wheresmyprompt -o "code review"
 #### Search within specific section:
 ```bash
 wheresmyprompt -s golang "error handling"
+# or just
+wheresmyprompt "error handling"
+# (auto-detects section based on repo language)
 ```
 
 #### Add new prompt (planned feature):
@@ -160,7 +167,7 @@ vim .env
 
 - `-d, --debug`: Enable debug logging
 - `-o, --one-shot`: Select best match and print to stdout
-- `-s, --section`: Search within specific section
+- `-s, --section`: Search within specific section (optional; auto-detected based off current working directory's primary programming language if not set)
 - `-w, --write`: Add new prompt to note (planned)
 
 ## 💡 Examples

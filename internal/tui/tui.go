@@ -18,6 +18,7 @@ import (
 type model struct {
 	textInput       textinput.Model
 	prompts         *prompt.PromptData
+	searchPool      []prompt.Prompt
 	filteredResults []prompt.Prompt
 	cursor          int
 	config          config.Config
@@ -57,10 +58,13 @@ func RunTUI(prompts *prompt.PromptData, conf config.Config) error {
 	ti.CharLimit = 156
 	ti.Width = 50
 
+	searchPool := generateSearchPoolFromSections(prompts)
+
 	m := model{
 		textInput:       ti,
 		prompts:         prompts,
-		filteredResults: prompts.Prompts,
+		searchPool:      searchPool,
+		filteredResults: searchPool,
 		config:          conf,
 	}
 
@@ -123,20 +127,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *model) filterResults() {
 	query := m.textInput.Value()
 	if query == "" {
-		m.filteredResults = m.prompts.Prompts
+		m.filteredResults = m.searchPool
 		return
 	}
 
 	// Prepare data for fuzzy search
-	searchData := make([]string, len(m.prompts.Prompts))
-	for i, p := range m.prompts.Prompts {
-		searchData[i] = p.Title + " " + p.Content
+	searchData := make([]string, len(m.searchPool))
+	for i, p := range m.searchPool {
+		searchData[i] = p.Content
 	}
 
-	matches := fuzzy.RankFind(query, searchData)
+	matches := fuzzy.RankFindNormalizedFold(query, searchData)
 	m.filteredResults = make([]prompt.Prompt, len(matches))
 	for i, match := range matches {
-		m.filteredResults[i] = m.prompts.Prompts[match.OriginalIndex]
+		m.filteredResults[i] = m.searchPool[match.OriginalIndex]
 	}
 }
 
@@ -175,7 +179,7 @@ func (m model) View() string {
 				cursor = "▶"
 			}
 
-			title := prompt.Title
+			title := prompt.Section
 			if m.cursor == i {
 				title = selectedStyle.Render(title)
 			}
@@ -208,4 +212,24 @@ func (m model) View() string {
 	b.WriteString(helpStyle.Render("↑/k up • ↓/j down • enter select & copy • ctrl+c/esc quit"))
 
 	return b.String()
+}
+
+// Helper to flatten PromptData.Sections into []Prompt
+func generateSearchPoolFromSections(data *prompt.PromptData) []prompt.Prompt {
+	var pool []prompt.Prompt
+	for _, sec := range data.Sections {
+		sectionTitle := ""
+		if len(sec.Headings) > 0 {
+			sectionTitle = sec.Headings[len(sec.Headings)-1]
+		}
+		for _, line := range sec.Lines {
+			if strings.TrimSpace(line) != "" {
+				pool = append(pool, prompt.Prompt{
+					Content: line,
+					Section: sectionTitle,
+				})
+			}
+		}
+	}
+	return pool
 }

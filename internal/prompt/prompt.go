@@ -4,32 +4,35 @@
 package prompt
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
-	"github.com/spf13/viper"
 	"github.com/toozej/wheresmyprompt/pkg/config"
 )
 
 // Prompt represents a single LLM prompt with its metadata.
-// It contains the prompt's title, content, and the section it belongs to.
+// It contains the prompt's content and the section it belongs to.
 type Prompt struct {
-	Title   string // The prompt's title or name
 	Content string // The actual prompt content
-	Section string // The section this prompt belongs to (optional)
+	Section string // The section this prompt belongs to
 }
 
 // PromptData contains the structured data for all prompts.
-// It provides both a flat list of all prompts and organized sections
-// for efficient searching and categorization.
+// providing a list of sections for efficient searching and categorization.
 type PromptData struct {
-	Prompts  []Prompt            // All prompts in a flat list
-	Sections map[string][]Prompt // Prompts organized by section
+	Sections []Section // All sections parsed from the markdown
+}
+
+// Section represents a heading (any depth) and its associated lines
+type Section struct {
+	Headings []string // Ordered from top-level heading to deepest sub-heading
+	Lines    []string
 }
 
 // CheckRequiredBinaries verifies that all required external binaries are available on the system.
@@ -69,7 +72,13 @@ func LoadPrompts(conf config.Config) (*PromptData, error) {
 		return nil, err
 	}
 
-	return parseMarkdown(content), nil
+	// Parse the loaded content into []sections
+	sections, err := parseMarkdownIntoSections(content)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse markdown content: %w", err)
+	}
+	// Gather the loaded sections into structured prompt data
+	return gatherPromptData(sections), nil
 }
 
 // loadFromFile reads prompts from a local markdown file.
@@ -158,95 +167,189 @@ func ensureSimplenoteAuth(conf config.Config) error {
 	return nil
 }
 
-// parseMarkdown parses the markdown content into structured prompt data.
-// It expects a specific format with sections marked by "## " and prompts marked by "### ".
+// parseMarkdown parses the markdown file's content into sections grouped by any heading level
+func parseMarkdownIntoSections(content string) ([]Section, error) {
+
+	var sections []Section
+	var current Section
+	var headingStack []string
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+	for scanner.Scan() {
+		line := scanner.Text()
+		level, headingText := parseHeading(line)
+		if level > 0 {
+			// Update heading stack
+			if len(headingStack) < level {
+				// Deeper heading: extend stack
+				headingStack = append(headingStack, headingText)
+			} else {
+				// Replace heading at this level and truncate deeper levels
+				headingStack = append(headingStack[:level-1], headingText)
+			}
+
+			// Save previous section
+			if len(current.Lines) > 0 {
+				sections = append(sections, current)
+			}
+			// Start new section
+			current = Section{
+				Headings: append([]string(nil), headingStack...), // copy
+			}
+		} else {
+			current.Lines = append(current.Lines, line)
+		}
+	}
+	// Save last section
+	if len(current.Lines) > 0 {
+		sections = append(sections, current)
+	}
+
+	return sections, scanner.Err()
+}
+
+// parseHeading returns heading level and text, or (0, "") if not a heading
+func parseHeading(line string) (int, string) {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "#") {
+		return 0, ""
+	}
+	level := 0
+	for i := 0; i < len(line) && line[i] == '#'; i++ {
+		level++
+	}
+	// Require at least one space after hashes
+	if len(line) > level && line[level] == ' ' {
+		return level, strings.TrimSpace(line[level:])
+	}
+	return 0, ""
+}
+
+// gatherPromptData gathers the markdown content from []sections into structured prompt data.
 // Returns a PromptData structure containing all parsed prompts organized by sections.
-func parseMarkdown(content string) *PromptData {
-	lines := strings.Split(content, "\n")
-	data := &PromptData{
-		Prompts:  make([]Prompt, 0),
-		Sections: make(map[string][]Prompt),
+func gatherPromptData(sections []Section) *PromptData {
+	return &PromptData{
+		Sections: sections,
 	}
+}
 
-	var currentSection string
-	var currentPrompt strings.Builder
-	var promptTitle string
-	inPrompt := false
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Check for section headers (##)
-		if strings.HasPrefix(line, "## ") {
-			// Save previous prompt if exists
-			if inPrompt && promptTitle != "" {
-				prompt := Prompt{
-					Title:   promptTitle,
-					Content: strings.TrimSpace(currentPrompt.String()),
-					Section: currentSection,
-				}
-				data.Prompts = append(data.Prompts, prompt)
-				if currentSection != "" {
-					data.Sections[currentSection] = append(data.Sections[currentSection], prompt)
-				}
-			}
-
-			currentSection = strings.TrimSpace(strings.TrimPrefix(line, "## "))
-			currentPrompt.Reset()
-			promptTitle = ""
-			inPrompt = false
+// Helper: match full section path (nested headings)
+func searchPoolBySectionPath(data *PromptData, sectionPath []string) []Prompt {
+	var searchPool []Prompt
+	for _, sec := range data.Sections {
+		// Always skip the first heading (Markdown file title)
+		if len(sec.Headings) < 2 {
 			continue
 		}
-
-		// Check for prompt headers (###)
-		if strings.HasPrefix(line, "### ") {
-			// Save previous prompt if exists
-			if inPrompt && promptTitle != "" {
-				prompt := Prompt{
-					Title:   promptTitle,
-					Content: strings.TrimSpace(currentPrompt.String()),
-					Section: currentSection,
-				}
-				data.Prompts = append(data.Prompts, prompt)
-				if currentSection != "" {
-					data.Sections[currentSection] = append(data.Sections[currentSection], prompt)
+		// Compare sectionPath to sec.Headings[1:]
+		if len(sec.Headings)-1 == len(sectionPath) {
+			match := true
+			for i := range sectionPath {
+				if sec.Headings[i+1] != sectionPath[i] {
+					match = false
+					break
 				}
 			}
-
-			promptTitle = strings.TrimSpace(strings.TrimPrefix(line, "### "))
-			currentPrompt.Reset()
-			inPrompt = true
-			continue
-		}
-
-		// Add content to current prompt
-		if inPrompt && line != "" {
-			if currentPrompt.Len() > 0 {
-				currentPrompt.WriteString("\n")
+			if match {
+				for _, line := range sec.Lines {
+					if strings.TrimSpace(line) != "" {
+						searchPool = append(searchPool, Prompt{
+							Content: line,
+							Section: sec.Headings[len(sec.Headings)-1],
+						})
+					}
+				}
 			}
-			currentPrompt.WriteString(line)
 		}
 	}
+	return searchPool
+}
 
-	// Save the last prompt
-	if inPrompt && promptTitle != "" {
-		prompt := Prompt{
-			Title:   promptTitle,
-			Content: strings.TrimSpace(currentPrompt.String()),
-			Section: currentSection,
-		}
-		data.Prompts = append(data.Prompts, prompt)
-		if currentSection != "" {
-			data.Sections[currentSection] = append(data.Sections[currentSection], prompt)
+// Helper: match single section name (lowest-level heading)
+func searchPoolBySingleSection(data *PromptData, section string) []Prompt {
+	var searchPool []Prompt
+	for _, sec := range data.Sections {
+		if len(sec.Headings) > 0 && sec.Headings[len(sec.Headings)-1] == section {
+			for _, line := range sec.Lines {
+				if strings.TrimSpace(line) != "" {
+					searchPool = append(searchPool, Prompt{
+						Content: line,
+						Section: section,
+					})
+				}
+			}
 		}
 	}
+	return searchPool
+}
 
-	if viper.GetBool("debug") {
-		s, _ := json.MarshalIndent(data, "", "\t")
-		fmt.Print(string(s))
+// Helper: match single section name (higher-level heading)
+func searchPoolByParentSection(data *PromptData, section string) []Prompt {
+	var searchPool []Prompt
+	for _, sec := range data.Sections {
+		if len(sec.Headings) > 1 {
+			for i, heading := range sec.Headings[:len(sec.Headings)-1] {
+				if heading == section {
+					for _, line := range sec.Lines {
+						if strings.TrimSpace(line) != "" {
+							searchPool = append(searchPool, Prompt{
+								Content: line,
+								Section: sec.Headings[len(sec.Headings)-1],
+							})
+						}
+					}
+					break
+				}
+				if i == len(sec.Headings)-2 {
+					break
+				}
+			}
+		}
 	}
+	return searchPool
+}
 
-	return data
+// Helper: all prompts (no section specified)
+func searchPoolAllPrompts(data *PromptData) []Prompt {
+	var searchPool []Prompt
+	for _, sec := range data.Sections {
+		if len(sec.Headings) > 0 {
+			sectionTitle := sec.Headings[len(sec.Headings)-1]
+			for _, line := range sec.Lines {
+				if strings.TrimSpace(line) != "" {
+					searchPool = append(searchPool, Prompt{
+						Content: line,
+						Section: sectionTitle,
+					})
+				}
+			}
+		}
+	}
+	return searchPool
+}
+
+// generateSearchPool creates a slice of Prompt structs for each line in the relevant sections.
+// Returns a slice of Prompt structs containing the content and section for each line.
+func generateSearchPool(data *PromptData, section string) []Prompt {
+	if section == "" {
+		// No section specified: return all prompts
+		return searchPoolAllPrompts(data)
+	}
+	sectionPath := strings.Split(section, ",")
+	for i := range sectionPath {
+		sectionPath[i] = strings.TrimSpace(sectionPath[i])
+	}
+	if len(sectionPath) > 1 {
+		// Comma-separated: treat as nested headings
+		return searchPoolBySectionPath(data, sectionPath)
+	}
+	// Single section name: try lowest-level heading match first
+	pool := searchPoolBySingleSection(data, sectionPath[0])
+	if len(pool) > 0 {
+		return pool
+	}
+	// If not found, try parent section match
+	return searchPoolByParentSection(data, sectionPath[0])
 }
 
 // SearchPrompts performs fuzzy search on prompts using the provided query.
@@ -254,16 +357,9 @@ func parseMarkdown(content string) *PromptData {
 // If the query is empty, it returns all prompts (or all prompts in the specified section).
 // Returns a slice of prompt content strings matching the search criteria.
 func SearchPrompts(data *PromptData, query, section string) []string {
-	var searchPool []Prompt
-
-	if section != "" {
-		if sectionPrompts, exists := data.Sections[section]; exists {
-			searchPool = sectionPrompts
-		} else {
-			return []string{}
-		}
-	} else {
-		searchPool = data.Prompts
+	searchPool := generateSearchPool(data, section)
+	if len(searchPool) == 0 {
+		return []string{}
 	}
 
 	if query == "" {
@@ -274,29 +370,63 @@ func SearchPrompts(data *PromptData, query, section string) []string {
 		return results
 	}
 
-	// First, search only the Title field
-	titleData := make([]string, len(searchPool))
-	for i, p := range searchPool {
-		titleData[i] = p.Title
-	}
-	titleMatches := fuzzy.RankFindNormalizedFold(query, titleData)
-	if len(titleMatches) > 0 {
-		results := make([]string, len(titleMatches))
-		for i, match := range titleMatches {
-			results[i] = searchPool[match.OriginalIndex].Content
-		}
-		return results
+	// Split query into individual words for better matching
+	queryWords := strings.Fields(strings.ToLower(query))
+	if len(queryWords) == 0 {
+		return []string{}
 	}
 
-	// If no title matches, search the Content field
-	contentData := make([]string, len(searchPool))
-	for i, p := range searchPool {
-		contentData[i] = p.Content
+	type MatchResult struct {
+		Content string
+		Score   int // Lower is better (total distance across all words)
+		Index   int
 	}
-	contentMatches := fuzzy.RankFindNormalizedFold(query, contentData)
-	results := make([]string, len(contentMatches))
-	for i, match := range contentMatches {
-		results[i] = searchPool[match.OriginalIndex].Content
+
+	var matches []MatchResult
+
+	// For each prompt in the search pool
+	for i, prompt := range searchPool {
+		totalDistance := 0
+		matchedWords := 0
+		content := strings.ToLower(prompt.Content)
+
+		// Check if all query words have reasonable matches in this prompt
+		for _, word := range queryWords {
+			// First try exact word match
+			if strings.Contains(content, word) {
+				matchedWords++
+				// Give exact matches a very low distance (high priority)
+				totalDistance += 1
+				continue
+			}
+
+			// If no exact match, try fuzzy match on individual word
+			wordMatches := fuzzy.RankFindNormalizedFold(word, []string{content})
+			if len(wordMatches) > 0 && wordMatches[0].Distance < 100 { // reasonable fuzzy match threshold
+				matchedWords++
+				totalDistance += wordMatches[0].Distance
+			}
+		}
+
+		// Only include this prompt if ALL query words were found
+		if matchedWords == len(queryWords) {
+			matches = append(matches, MatchResult{
+				Content: prompt.Content,
+				Score:   totalDistance,
+				Index:   i,
+			})
+		}
+	}
+
+	// Sort matches by score (lower is better)
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].Score < matches[j].Score
+	})
+
+	// Extract just the content
+	results := make([]string, len(matches))
+	for i, match := range matches {
+		results[i] = match.Content
 	}
 	return results
 }
@@ -322,12 +452,10 @@ func FindBestMatch(data *PromptData, query, section string) string {
 // If the section doesn't exist, it returns an empty slice.
 // Returns a slice of prompt content strings from the specified section.
 func GetSectionPrompts(data *PromptData, section string) []string {
-	if sectionPrompts, exists := data.Sections[section]; exists {
-		results := make([]string, len(sectionPrompts))
-		for i, p := range sectionPrompts {
-			results[i] = p.Content
+	for _, sec := range data.Sections {
+		if len(sec.Headings) > 0 && sec.Headings[len(sec.Headings)-1] == section {
+			return []string{strings.Join(sec.Lines, "\n")}
 		}
-		return results
 	}
 	return []string{}
 }
