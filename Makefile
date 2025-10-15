@@ -26,14 +26,20 @@ LDFLAGS = -s -w \
 	-X $(VER).BuiltAt=$(NOW) \
 	-X $(VER).Builder=$(BUILDER)
 	
-OS = $(shell uname -s)
+# Define the repository URL
+REPO_URL := https://github.com/toozej/wheresmyprompt
+
+# Detect the OS and architecture
+OS := $(shell uname -s)
+ARCH := $(shell uname -m)
+LATEST_RELEASE_URL := $(REPO_URL)/releases/latest/download/wheresmyprompt_$(OS)_$(ARCH).tar.gz
 ifeq ($(OS), Linux)
 	OPENER=xdg-open
 else
 	OPENER=open
 endif
 
-.PHONY: all vet test build verify run up down distroless-build distroless-run install local local-vet local-test local-cover local-run local-kill local-iterate local-release-test local-release local-sign local-verify local-release-verify local-install get-cosign-pub-key docker-login pre-commit-install pre-commit-run pre-commit pre-reqs update-golang-version upload-secrets-to-gh upload-secrets-envfile-to-1pass docs docs-generate docs-serve clean help
+.PHONY: all vet test build verify run up down distroless-build distroless-run install local local-vet local-test local-cover local-run local-run-local local-kill local-iterate local-release-test local-release local-sign local-verify local-release-verify local-install get-cosign-pub-key docker-login pre-commit-install pre-commit-run pre-commit pre-reqs update-golang-version upload-secrets-to-gh upload-secrets-envfile-to-1pass docs diagrams mutation-test test-changed watch-test profile-cpu profile-mem profile-all benchmark clean help
 
 all: vet pre-commit clean test build verify run ## Run default workflow via Docker
 local: local-update-deps local-vendor local-vet pre-commit clean local-test local-cover local-build local-sign local-verify local-kill local-run ## Run default workflow using locally installed Golang toolchain
@@ -41,22 +47,22 @@ local-release-verify: local-release local-sign local-verify ## Release and verif
 pre-reqs: pre-commit-install ## Install pre-commit hooks and necessary binaries
 
 vet: ## Run `go vet` in Docker
-	docker build --target vet -f $(CURDIR)/Dockerfile -t toozej/golang-starter:latest . 
+	docker build --target vet -f $(CURDIR)/Dockerfile -t toozej/wheresmyprompt:latest . 
 
 test: ## Run `go test` in Docker
-	docker build --progress=plain --target test -f $(CURDIR)/Dockerfile -t toozej/golang-starter:latest . 
+	docker build --progress=plain --target test -f $(CURDIR)/Dockerfile -t toozej/wheresmyprompt:latest . 
 
 build: ## Build Docker image, including running tests
-	docker build -f $(CURDIR)/Dockerfile -t toozej/golang-starter:latest .
+	docker build -f $(CURDIR)/Dockerfile -t toozej/wheresmyprompt:latest .
 
-get-cosign-pub-key: ## Get golang-starter Cosign public key from GitHub
-	test -f $(CURDIR)/golang-starter.pub || curl --silent https://raw.githubusercontent.com/toozej/golang-starter/main/golang-starter.pub -O
+get-cosign-pub-key: ## Get wheresmyprompt Cosign public key from GitHub
+	test -f $(CURDIR)/wheresmyprompt.pub || curl --silent https://raw.githubusercontent.com/toozej/wheresmyprompt/main/wheresmyprompt.pub -O
 
 verify: get-cosign-pub-key ## Verify Docker image with Cosign
-	cosign verify --key $(CURDIR)/golang-starter.pub toozej/golang-starter:latest
+	cosign verify --key $(CURDIR)/wheresmyprompt.pub toozej/wheresmyprompt:latest
 
 run: ## Run built Docker image
-	docker run --rm --name golang-starter --env-file $(CURDIR)/.env toozej/golang-starter:latest
+	docker run --rm --name wheresmyprompt --env-file $(CURDIR)/.env toozej/wheresmyprompt:latest
 
 up: test build ## Run Docker Compose project with build Docker image
 	docker compose -f docker-compose.yml down --remove-orphans
@@ -67,22 +73,39 @@ down: ## Stop running Docker Compose project
 	docker compose -f docker-compose.yml down --remove-orphans
 
 distroless-build: ## Build Docker image using distroless as final base
-	docker build -f $(CURDIR)/Dockerfile.distroless -t toozej/golang-starter:distroless . 
+	docker build -f $(CURDIR)/Dockerfile.distroless -t toozej/wheresmyprompt:distroless . 
 
 distroless-run: ## Run built Docker image using distroless as final base
-	docker run --rm --name golang-starter -v $(CURDIR)/config:/config toozej/golang-starter:distroless
+	docker run --rm --name wheresmyprompt -v $(CURDIR)/config:/config toozej/wheresmyprompt:distroless
 
-install: ## Install golang-starter from latest GitHub release
+install: ## Install wheresmyprompt from latest GitHub release
 	if command -v go; then \
-			go install github.com/toozej/golang-starter@latest ; \
+			go install github.com/toozej/wheresmyprompt@latest ; \
 	else \
-			echo "Downloading golang-starter binary for $(OS)-$(ARCH)..."; \
+			echo "Downloading wheresmyprompt binary for $(OS)-$(ARCH)..."; \
 			mkdir -p $(CURDIR)/tmp; \
-			curl --silent -L -o $(CURDIR)/tmp/golang-starter.tgz $(LATEST_RELEASE_URL); \
-			tar -xzf $(CURDIR)/tmp/golang-starter.tgz -C $(CURDIR)/tmp/; \
-			chmod +x $(CURDIR)/tmp/golang-starter; \
-			sudo mv $(CURDIR)/tmp/golang-starter /usr/local/bin/golang-starter; \
+			curl --silent -L -o $(CURDIR)/tmp/wheresmyprompt.tgz $(LATEST_RELEASE_URL); \
+			tar -xzf $(CURDIR)/tmp/wheresmyprompt.tgz -C $(CURDIR)/tmp/; \
+			chmod +x $(CURDIR)/tmp/wheresmyprompt; \
+			sudo mv $(CURDIR)/tmp/wheresmyprompt /usr/local/bin/wheresmyprompt; \
 			rm -rf $(CURDIR)/tmp; \
+	fi
+
+local-deps: ## Install required dependencies locally
+	if ! command -v op; then \
+		if command -v brew; then \
+			brew install 1password-cli; \
+		elif command -v apt; then \
+			sudo apt install -y 1password-cli; \
+		elif command -v dnf; then \
+			sudo dnf install -y 1password-cli; \
+		else \
+			echo "Please install 1Password CLI manually"; \
+		fi; \
+	fi
+	if ! command -v sncli; then \
+		pip install --break-system-packages --user sncli; \
+		touch $(HOME)/.snclirc; \
 	fi
 
 local-update-deps: ## Run `go get -t -u ./...` to update Go module dependencies
@@ -96,7 +119,7 @@ local-vendor: ## Run `go mod tidy & vendor` using locally installed golang toolc
 	go mod vendor
 
 local-test: ## Run `go test` using locally installed golang toolchain
-	go test -coverprofile c.out -v $(CURDIR)/...
+	go test -race -coverprofile c.out -v $(CURDIR)/...
 	@echo -e "\nStatements missing coverage"
 	@grep -v -e " 1$$" c.out
 
@@ -106,15 +129,21 @@ local-cover: ## View coverage report in web browser
 local-build: ## Run `go build` using locally installed golang toolchain
 	CGO_ENABLED=0 go build -o $(CURDIR)/out/ -ldflags="$(LDFLAGS)"
 
+local-run-local: ## Run locally built binary with local prompts file
+	$(CURDIR)/out/wheresmyprompt -l $(HOME)/tmp/llm_prompts.md -s "Golang,starter" -o
+	$(CURDIR)/out/wheresmyprompt -l $(HOME)/tmp/llm_prompts.md -s "documentation" "standard methodology"
+	$(CURDIR)/out/wheresmyprompt -l $(HOME)/tmp/llm_prompts.md -s "code review" "genius"
+	$(CURDIR)/out/wheresmyprompt -l $(HOME)/tmp/llm_prompts.md -a "documentation"
+
 local-run: ## Run locally built binary
 	if test -e $(CURDIR)/.env; then \
-		export `cat $(CURDIR)/.env | xargs` && $(CURDIR)/out/golang-starter; \
+		set -a && source <(grep '^SN_' .env) && set +a && $(CURDIR)/out/wheresmyprompt -o "documentation"; \
 	else \
 		echo "No environment variables found at $(CURDIR)/.env. Cannot run."; \
 	fi
 
 local-kill: ## Kill any currently running locally built binary
-	-pkill -f '$(CURDIR)/out/golang-starter'
+	-pkill -f '$(CURDIR)/out/wheresmyprompt'
 
 local-iterate: ## Run `make local-build local-run` via `air` any time a .go or .tmpl file changes
 	air -c $(CURDIR)/.air.toml
@@ -124,33 +153,33 @@ local-release-test: ## Build assets and test goreleaser config using locally ins
 	goreleaser build --rm-dist --snapshot
 
 local-release: local-test docker-login ## Release assets using locally installed golang toolchain and goreleaser
-	if test -e $(CURDIR)/golang-starter.key && test -e $(CURDIR)/.env; then \
+	if test -e $(CURDIR)/wheresmyprompt.key && test -e $(CURDIR)/.env; then \
 		export `cat $(CURDIR)/.env | xargs` && goreleaser release --rm-dist; \
 	else \
-		echo "no cosign private key found at $(CURDIR)/golang-starter.key. Cannot release."; \
+		echo "no cosign private key found at $(CURDIR)/wheresmyprompt.key. Cannot release."; \
 	fi
 
 local-sign: local-test ## Sign locally installed golang toolchain and cosign
-	if test -e $(CURDIR)/golang-starter.key && test -e $(CURDIR)/.env; then \
-		export `cat $(CURDIR)/.env | xargs` && cosign sign-blob --key=$(CURDIR)/golang-starter.key --output-signature=$(CURDIR)/golang-starter.sig $(CURDIR)/out/golang-starter; \
+	if test -e $(CURDIR)/wheresmyprompt.key && test -e $(CURDIR)/.env; then \
+		export `cat $(CURDIR)/.env | xargs` && cosign sign-blob --key=$(CURDIR)/wheresmyprompt.key --output-signature=$(CURDIR)/wheresmyprompt.sig $(CURDIR)/out/wheresmyprompt; \
 	else \
-		echo "no cosign private key found at $(CURDIR)/golang-starter.key. Cannot release."; \
+		echo "no cosign private key found at $(CURDIR)/wheresmyprompt.key. Cannot release."; \
 	fi
 
 local-verify: get-cosign-pub-key ## Verify locally compiled binary
 	# cosign here assumes you're using Linux AMD64 binary
-	cosign verify-blob --key $(CURDIR)/golang-starter.pub --signature $(CURDIR)/golang-starter.sig $(CURDIR)/out/golang-starter
+	cosign verify-blob --key $(CURDIR)/wheresmyprompt.pub --signature $(CURDIR)/wheresmyprompt.sig $(CURDIR)/out/wheresmyprompt
 
 local-install: local-build local-verify ## Install compiled binary to local machine
-	sudo cp $(CURDIR)/out/golang-starter /usr/local/bin/golang-starter
-	sudo chmod 0755 /usr/local/bin/golang-starter
+	sudo cp $(CURDIR)/out/wheresmyprompt /usr/local/bin/wheresmyprompt
+	sudo chmod 0755 /usr/local/bin/wheresmyprompt
 
 upload-secrets-to-gh: ## Upload secrets from .env file to GitHub Actions Secrets + Dependabot
-	$(CURDIR)/scripts/upload_secrets_to_github.sh golang-starter 
+	$(CURDIR)/scripts/upload_secrets_to_github.sh wheresmyprompt 
 
 upload-secrets-envfile-to-1pass: ## Upload secrets and .env file to 1Password
-	$(CURDIR)/scripts/upload_secrets_to_1password secrets golang-starter
-	$(CURDIR)/scripts/upload_secrets_to_1password envfile golang-starter
+	$(CURDIR)/scripts/upload_secrets_to_1password secrets wheresmyprompt
+	$(CURDIR)/scripts/upload_secrets_to_1password envfile wheresmyprompt
 
 docker-login: ## Login to Docker registries used to publish images to
 	if test -e $(CURDIR)/.env; then \
@@ -181,7 +210,7 @@ pre-commit-install: ## Install pre-commit hooks and necessary binaries
 	# shellcheck
 	command -v shellcheck || brew install shellcheck || apt install -y shellcheck || sudo dnf install -y ShellCheck || sudo apt install -y shellcheck
 	# checkmake
-	go install github.com/mrtazz/checkmake/cmd/checkmake@latest
+	go install github.com/checkmake/checkmake/cmd/checkmake@latest
 	# goreleaser
 	go install github.com/goreleaser/goreleaser/v2@latest
 	# syft
@@ -194,6 +223,8 @@ pre-commit-install: ## Install pre-commit hooks and necessary binaries
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 	# air
 	go install github.com/air-verse/air@latest
+	# graphviz for dot
+	command -v dot || brew install graphviz || sudo apt install -y graphviz || sudo dnf install -y graphviz
 	# install and update pre-commits
 	# determine if on Debian 12 and if so use pip to install more modern pre-commit version
 	grep --silent "VERSION=\"12 (bookworm)\"" /etc/os-release && apt install -y --no-install-recommends python3-pip && python3 -m pip install --break-system-packages --upgrade pre-commit || echo "OS is not Debian 12 bookworm"
@@ -204,27 +235,75 @@ pre-commit-install: ## Install pre-commit hooks and necessary binaries
 pre-commit-run: ## Run pre-commit hooks against all files
 	pre-commit run --all-files
 	# manually run the following checks since their pre-commits aren't working or don't exist
-	go-licenses report github.com/toozej/golang-starter/cmd/golang-starter
+	go-licenses report github.com/toozej/wheresmyprompt/cmd/wheresmyprompt
 	govulncheck ./...
 
 update-golang-version: ## Update to latest Golang version across the repo
 	@VERSION=`curl -s "https://go.dev/dl/?mode=json" | jq -r '.[0].version' | sed 's/go//' | cut -d '.' -f 1,2`; \
 	$(CURDIR)/scripts/update_golang_version.sh $$VERSION
 
-docs: docs-generate docs-serve ## Generate and serve documentation
+docs: ## Serve Go documentation
+	@echo "Starting Go documentation server on localhost"
+	@echo "Use Ctrl+C to stop the server"
+	go doc -http
 
-docs-generate:
-	docker build -f $(CURDIR)/Dockerfile.docs -t toozej/golang-starter:docs . 
-	docker run --rm --name golang-starter-docs -v $(CURDIR):/package -v $(CURDIR)/docs:/docs toozej/golang-starter:docs
+diagrams: ## Generate architectural diagrams using go-diagrams
+	@echo "Generating architectural diagrams..."
+	go run cmd/diagrams/main.go
+	cd ./docs/diagrams/go-diagrams && for i in $(find . -name '*.dot'); do \
+		dot -Tpng $i > ${i%.dot}.png; \
+	done
+	@echo "Diagram PNGs generated in ./docs/diagrams/go-diagrams/"
 
-docs-serve: ## Serve documentation on http://localhost:9000
-	docker run -d --rm --name golang-starter-docs-serve -p 9000:3080 -v $(CURDIR)/docs:/data thomsch98/markserv
-	$(OPENER) http://localhost:9000/docs.md
-	@echo -e "to stop docs container, run:\n"
-	@echo "docker kill golang-starter-docs-serve"
+mutation-test: ## Run mutation testing using go-gremlins
+	@echo "Running mutation tests..."
+	gremlins unleash -E "vendor/"
+	@echo "Mutation testing completed"
 
-clean: ## Remove any locally compiled binaries
-	rm -f $(CURDIR)/out/golang-starter
+test-changed: ## Run tests only for packages with changes since last commit
+	@echo "Running tests for changed packages..."
+	@CHANGED_PACKAGES=$(git diff --name-only HEAD~1 | grep '\.go$' | xargs -I {} dirname {} | sort -u | xargs -I {} go list ./{}... 2>/dev/null | grep -v 'no Go files'); \
+	if [ -n "$CHANGED_PACKAGES" ]; then \
+		echo "Testing packages: $CHANGED_PACKAGES"; \
+		go test -race -v $CHANGED_PACKAGES; \
+	else \
+		echo "No changed Go packages found"; \
+	fi
+
+watch-test: ## Watch for file changes and run tests for changed packages
+	@echo "Watching for changes and running tests..."
+	@while true; do \
+		CHANGED_PACKAGES=$(git diff --name-only HEAD | grep '\.go$' | xargs -I {} dirname {} | sort -u | xargs -I {} go list ./{}... 2>/dev/null | grep -v 'no Go files'); \
+		if [ -n "$CHANGED_PACKAGES" ]; then \
+			echo "Changed packages detected: $CHANGED_PACKAGES"; \
+			go test -race -v $CHANGED_PACKAGES; \
+		fi; \
+		sleep 2; \
+	done
+
+profile-cpu: ## Generate CPU performance profile
+	@echo "Generating CPU profile..."
+	mkdir -p $(CURDIR)/profiles
+	go test -bench=. -cpuprofile=$(CURDIR)/profiles/cpu.prof $(CURDIR)/internal/prompt/
+	@echo "CPU profile generated at $(CURDIR)/profiles/cpu.prof"
+	go tool pprof -http $(CURDIR)/profiles/cpu.prof
+
+profile-mem: ## Generate memory performance profile
+	@echo "Generating memory profile..."
+	mkdir -p $(CURDIR)/profiles
+	go test -bench=. -memprofile=$(CURDIR)/profiles/mem.prof $(CURDIR)/internal/prompt/
+	@echo "Memory profile generated at $(CURDIR)/profiles/mem.prof"
+	go tool pprof -http $(CURDIR)/profiles/mem.prof
+
+profile-all: profile-cpu profile-mem ## Generate both CPU and memory profiles
+
+benchmark: ## Run benchmarks
+	@echo "Running benchmarks..."
+	go test -bench=. -benchmem $(CURDIR)/internal/prompt/
+
+clean: ## Remove any locally compiled binaries and profiles
+	rm -f $(CURDIR)/out/wheresmyprompt
+	rm -rf $(CURDIR)/profiles/
 
 help: ## Display help text
 	@grep -E '^[a-zA-Z_-]+ ?:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

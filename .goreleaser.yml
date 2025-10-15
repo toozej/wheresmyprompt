@@ -1,7 +1,7 @@
 ---
 version: 2
 
-project_name: golang-starter
+project_name: wheresmyprompt
 
 env:
   - GO111MODULE=on
@@ -33,6 +33,9 @@ builds:
       - arm64
     goarm:
       - "7"
+    ignore:
+      - goos: windows
+        goarch: arm
     mod_timestamp: '{{ .CommitTimestamp }}'
     flags:
       - -trimpath
@@ -40,7 +43,7 @@ builds:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate
         }} -X main.builtBy=goreleaser
     main: ./
-    binary: golang-starter
+    binary: wheresmyprompt
 
 universal_binaries:
   - replace: false
@@ -76,142 +79,86 @@ changelog:
     - title: Other work
       order: 9999
 
-dockers:
-  - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-amd64'
+dockers_v2:
+  - id: wheresmyprompt
+    images:
+      - 'toozej/wheresmyprompt'
+      - 'ghcr.io/toozej/wheresmyprompt'
+      - 'quay.io/toozej/wheresmyprompt'
+    tags:
+      - "v{{ .Version }}"
+      - "{{ .Version }}"
+      - "latest"
     dockerfile: Dockerfile.goreleaser
-    use: buildx
-    build_flag_templates:
-      - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
-      - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
-      - "--label=io.artifacthub.package.license=GPLv3"
-      - "--label=org.opencontainers.image.description=Golang starter template"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
-      - "--platform=linux/amd64"
+    labels:
+      "io.artifacthub.package.readme-url": "https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
+      "io.artifacthub.package.maintainers": "[{\"name\":\"toozej\"}]"
+      "io.artifacthub.package.license": "GPLv3"
+      "org.opencontainers.image.description": "Find liquor stores and their inventory"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.authors": "James Tooze https://github.com/toozej/"
+      "org.opencontainers.image.documentation": "https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
+      "org.opencontainers.image.licenses": "GPL-3.0-only"
+      "org.opencontainers.image.title": "{{.ProjectName}}"
+      "org.opencontainers.image.vendor": "James Tooze"
+    annotations:
+      "index,manifest:org.opencontainers.image.authors": "James Tooze https://github.com/toozej/"
+      "index,manifest:org.opencontainers.image.created": "{{.Date}}"
+      "index,manifest:org.opencontainers.image.description": "Find liquor stores and their\
+        \ inventory"
+      "index,manifest:org.opencontainers.image.documentation": "https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
+      "index,manifest:org.opencontainers.image.licenses": "GPL-3.0-only"
+      "index,manifest:org.opencontainers.image.revision": "{{.FullCommit}}"
+      "index,manifest:org.opencontainers.image.source": "https://github.com/toozej/wheresmyprompt"
+      "index,manifest:org.opencontainers.image.title": "{{.ProjectName}}"
+      "index,manifest:org.opencontainers.image.vendor": "James Tooze"
+      "index,manifest:org.opencontainers.image.version": "{{.Version}}"
     extra_files:
       - scripts/goreleaser_entrypoint.sh
-  - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-arm64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-arm64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-arm64'
-    dockerfile: Dockerfile.goreleaser
-    use: buildx
-    build_flag_templates:
-      - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
-      - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
-      - "--label=io.artifacthub.package.license=GPLv3"
-      - "--label=org.opencontainers.image.description=Golang starter template"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
-      - "--platform=linux/arm64"
-    goarch: arm64
-    extra_files:
-      - scripts/goreleaser_entrypoint.sh
-  - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
+  - id: wheresmyprompt-distroless
+    images:
+      - 'toozej/wheresmyprompt'
+      - 'ghcr.io/toozej/wheresmyprompt'
+      - 'quay.io/toozej/wheresmyprompt'
+    tags:
+      - "v{{ .Version }}-distroless"
+      - "{{ .Version }}-distroless"
+      - "distroless"
     dockerfile: Dockerfile.goreleaser.distroless
-    use: buildx
-    build_flag_templates:
-      - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
-      - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
-      - "--label=io.artifacthub.package.license=GPLv3"
-      - "--label=org.opencontainers.image.description=Golang starter template"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
-      - "--platform=linux/amd64"
-    extra_files:
-      - scripts/goreleaser_entrypoint.sh
-  - image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-    dockerfile: Dockerfile.goreleaser.distroless
-    use: buildx
-    build_flag_templates:
-      - "--pull"
-      - "--label=io.artifacthub.package.readme-url=https://raw.githubusercontent.com/toozej/golang-starter/main/README.md"
-      - "--label=io.artifacthub.package.maintainers=[{\"name\":\"toozej\"}]"
-      - "--label=io.artifacthub.package.license=GPLv3"
-      - "--label=org.opencontainers.image.description=Golang starter template"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
-      - "--platform=linux/arm64"
-    goarch: arm64
+    labels:
+      "io.artifacthub.package.readme-url": "https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
+      "io.artifacthub.package.maintainers": "[{\"name\":\"toozej\"}]"
+      "io.artifacthub.package.license": "GPLv3"
+      "org.opencontainers.image.description": "Find liquor stores and their inventory"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.authors": "James Tooze https://github.com/toozej/"
+      "org.opencontainers.image.documentation": "https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
+      "org.opencontainers.image.licenses": "GPL-3.0-only"
+      "org.opencontainers.image.title": "{{.ProjectName}}"
+      "org.opencontainers.image.vendor": "James Tooze"
+    annotations:
+      "index,manifest:org.opencontainers.image.authors": "James Tooze https://github.com/toozej/"
+      "index,manifest:org.opencontainers.image.created": "{{.Date}}"
+      "index,manifest:org.opencontainers.image.description": "Find liquor stores and their\
+        \ inventory"
+      "index,manifest:org.opencontainers.image.documentation": "https://raw.githubusercontent.com/toozej/wheresmyprompt/main/README.md"
+      "index,manifest:org.opencontainers.image.licenses": "GPL-3.0-only"
+      "index,manifest:org.opencontainers.image.revision": "{{.FullCommit}}"
+      "index,manifest:org.opencontainers.image.source": "https://github.com/toozej/wheresmyprompt"
+      "index,manifest:org.opencontainers.image.title": "{{.ProjectName}}"
+      "index,manifest:org.opencontainers.image.vendor": "James Tooze"
+      "index,manifest:org.opencontainers.image.version": "{{.Version}}"
     extra_files:
       - scripts/goreleaser_entrypoint.sh
 
-docker_manifests:
-  # tagged
-  - name_template: 'toozej/golang-starter:{{ .Tag }}'
-    image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:{{ .Tag }}'
-    image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:{{ .Tag }}'
-    image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'toozej/golang-starter:{{ .Tag }}-distroless'
-    image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless'
-    image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless'
-    image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  # latest
-  - name_template: 'toozej/golang-starter:latest'
-    image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:latest'
-    image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:latest'
-    image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-arm64'
-  # distroless
-  - name_template: 'toozej/golang-starter:distroless'
-    image_templates:
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'ghcr.io/toozej/golang-starter:distroless'
-    image_templates:
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'ghcr.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
-  - name_template: 'quay.io/toozej/golang-starter:distroless'
-    image_templates:
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-amd64'
-      - 'quay.io/toozej/golang-starter:{{ .Tag }}-distroless-arm64'
 
 archives:
   - name_template: >-
@@ -232,33 +179,33 @@ archives:
 nfpms:
   - file_name_template: '{{ .ConventionalFileName }}'
     id: packages
-    homepage: https://github.com/toozej/golang-starter
+    homepage: https://github.com/toozej/wheresmyprompt
     description: |-
-      Golang starter template
+      Find liquor stores and their inventory
     maintainer: toozej
     license: GPLv3
-    vendor: golang-starter
+    vendor: wheresmyprompt
     bindir: /usr/bin
     section: utils
     contents:
-      - src: ./completions/golang-starter.bash
-        dst: /usr/share/bash-completion/completions/golang-starter
+      - src: ./completions/wheresmyprompt.bash
+        dst: /usr/share/bash-completion/completions/wheresmyprompt
         file_info:
           mode: 0644
-      - src: ./completions/golang-starter.fish
-        dst: /usr/share/fish/completions/golang-starter.fish
+      - src: ./completions/wheresmyprompt.fish
+        dst: /usr/share/fish/completions/wheresmyprompt.fish
         file_info:
           mode: 0644
-      - src: ./completions/golang-starter.zsh
-        dst: /usr/share/zsh/vendor-completions/_golang-starter
+      - src: ./completions/wheresmyprompt.zsh
+        dst: /usr/share/zsh/vendor-completions/_wheresmyprompt
         file_info:
           mode: 0644
-      - src: ./manpages/golang-starter.1.gz
-        dst: /usr/share/man/man1/golang-starter.1.gz
+      - src: ./manpages/wheresmyprompt.1.gz
+        dst: /usr/share/man/man1/wheresmyprompt.1.gz
         file_info:
           mode: 0644
       - src: ./LICENSE
-        dst: /usr/share/doc/golang-starter/copyright
+        dst: /usr/share/doc/wheresmyprompt/copyright
         file_info:
           mode: 0644
     formats:
@@ -273,6 +220,30 @@ nfpms:
       lintian_overrides:
         - statically-linked-binary
         - changelog-file-missing-in-native-package
+
+homebrew_casks:
+  - name: wheresmyprompt
+    homepage: https://github.com/toozej/wheresmyprompt
+    description: "Find liquor stores and their inventory"
+    license: GPLv3
+    repository:
+      owner: toozej
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    manpages:
+      - "man/wheresmyprompt.1.gz"
+    completions:
+      bash: "completions/wheresmyprompt.bash"
+      zsh: "completions/wheresmyprompt.zsh"
+      fish: "completions/wheresmyprompt.fish"
+    url:
+      verified: "github.com/toozej/wheresmyprompt/releases/download"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/wheresmyprompt"]
+          end
 
 sboms:
   - artifacts: archive
@@ -305,4 +276,4 @@ milestones:
 
 release:
   footer: |
-    **Full Changelog**: https://github.com/toozej/golang-starter/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/toozej/wheresmyprompt/compare/{{ .PreviousTag }}...{{ .Tag }}

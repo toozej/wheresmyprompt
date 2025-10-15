@@ -13,7 +13,8 @@ function handle_error {
 fetch_credentials() {
     echo "Fetching credentials from 1Password..."
 
-    GH_GHCR_TOKEN=$(op item get "github.com" --field ghcr_token --reveal) || handle_error "Failed to fetch GitHub GHCR token."
+    GH_GHCR_TOKEN=$(op item get "github.com" --field ghcr_token --reveal) || handle_error "Failed to fetch GHCR GitHub token."
+    TAP_GITHUB_TOKEN=$(op item get "github.com" --field tap_token --reveal) || handle_error "Failed to fetch Homebrew Tap GitHub token."
     DOCKERHUB_USERNAME=$(op item get "docker.com" --field username) || handle_error "Failed to fetch DockerHub username."
     DOCKERHUB_TOKEN=$(op item get "docker.com" --field token --reveal) || handle_error "Failed to fetch DockerHub token."
     QUAY_USERNAME=$(op item get "Quay.io" --field username) || handle_error "Failed to fetch Quay username."
@@ -24,6 +25,7 @@ fetch_credentials() {
     cat <<EOF >> .env
 GITHUB_USERNAME=${GITHUB_USERNAME}
 GH_GHCR_TOKEN=${GH_GHCR_TOKEN}
+TAP_GITHUB_TOKEN=${TAP_GITHUB_TOKEN}
 DOCKERHUB_USERNAME=${DOCKERHUB_USERNAME}
 DOCKERHUB_TOKEN=${DOCKERHUB_TOKEN}
 QUAY_USERNAME=${QUAY_USERNAME}
@@ -111,7 +113,7 @@ if [[ $# -lt 1 ]]; then
     handle_error "Usage: $0 <new_project_name> [github_username]"
 fi
 
-OLD_PROJECT_NAME="golang-starter"
+OLD_PROJECT_NAME="wheresmyprompt"
 NEW_PROJECT_NAME="${1}"
 GITHUB_USERNAME="${2:-toozej}"
 
@@ -129,7 +131,7 @@ EOF
 echo "Updating project from ${OLD_PROJECT_NAME} to ${NEW_PROJECT_NAME}..."
 
 # Truncate existing CREDITS.md file and replace its contents with link to template repo's CREDITS.md file
-echo -e "# Credits and Acknowledgements\n\n- https://raw.githubusercontent.com/toozej/golang-starter/main/CREDITS.md" > CREDITS.md
+echo -e "# Credits and Acknowledgements\n\n- https://raw.githubusercontent.com/toozej/wheresmyprompt/main/CREDITS.md" > CREDITS.md
 
 # Remove old public key if it exists
 rm -f "./${OLD_PROJECT_NAME}.pub" || handle_error "Failed to remove ${OLD_PROJECT_NAME}.pub"

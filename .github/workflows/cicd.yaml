@@ -6,20 +6,25 @@ on:
   workflow_dispatch:
   push:
   schedule:
-    - cron: "0 1 * * 1"
+    - cron: "3 1 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  # Give the workflow permission to write attestations.
+  id-token: write
+  attestations: write
+
 jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: '^1.24'
+          go-version: '^1.25'
           check-latest: true
       - name: Run pre-commit
         run: |
@@ -33,7 +38,7 @@ jobs:
     name: gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
@@ -48,22 +53,22 @@ jobs:
       actions: read
       contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: '^1.24'
+          go-version: '^1.25'
           check-latest: true
-      - uses: github/codeql-action/init@v3 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
+      - uses: github/codeql-action/init@v4 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
         with:
           languages: go
-      - uses: github/codeql-action/autobuild@v3 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
-      - uses: github/codeql-action/analyze@v3 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
+      - uses: github/codeql-action/autobuild@v4 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
+      - uses: github/codeql-action/analyze@v4 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
 
   trivy-scan-source:
     name: trivy-scan-source
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@master # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
         with:
@@ -79,11 +84,11 @@ jobs:
     name: snyk
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: snyk/actions/setup@master # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
-          go-version: '^1.24'
+          go-version: '^1.25'
           check-latest: true
       - name: Snyk monitor
         run: snyk test
@@ -97,18 +102,22 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Fetch all tags
         run: git fetch --force --tags
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '^1.24'
+          go-version: '^1.25'
           check-latest: true
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
       - uses: sigstore/cosign-installer@v3 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
       - uses: anchore/sbom-action/download-syft@v0 # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
       - name: Login to DockerHub
@@ -137,11 +146,20 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --clean
-          workdir: '/home/runner/work/golang-starter/golang-starter'
+          workdir: '/home/runner/work/wheresmyprompt/wheresmyprompt'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+      # After GoReleaser runs, attest all the files in ./dist/checksums.txt:
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-checksums: ./dist/checksums.txt
+      # After GoReleaser runs, attest all the images in ./dist/digests.txt:
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-checksums: ./dist/digests.txt
 
   verify_signed_binaries:
     runs-on: ubuntu-latest
@@ -157,13 +175,13 @@ jobs:
         uses: sigstore/cosign-installer@main # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
       - name: Get public cosign key
         run: |
-          curl --silent https://raw.githubusercontent.com/toozej/golang-starter/main/golang-starter.pub -O
+          curl --silent https://raw.githubusercontent.com/toozej/wheresmyprompt/main/wheresmyprompt.pub -O
       - name: Verify signatures of binaries
         run: |
-          FILE=./dist/golang-starter_${{ matrix.platform }}_${{ matrix.arch }}/golang-starter${{ matrix.extension }}
+          FILE=./dist/wheresmyprompt_${{ matrix.platform }}_${{ matrix.arch }}/wheresmyprompt${{ matrix.extension }}
           if test -f "${FILE}"; then
             echo "verifying binary: ${FILE}"
-            cosign verify --key golang-starter.pub --signature "${FILE}.sig" "${FILE}"
+            cosign verify --key wheresmyprompt.pub --signature "${FILE}.sig" "${FILE}"
           else
             echo "skipping verifying non-existant binary: ${FILE}"
           fi
@@ -182,13 +200,13 @@ jobs:
         uses: sigstore/cosign-installer@main # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
       - name: Get public cosign key
         run: |
-          curl --silent https://raw.githubusercontent.com/toozej/golang-starter/main/golang-starter.pub -O
+          curl --silent https://raw.githubusercontent.com/toozej/wheresmyprompt/main/wheresmyprompt.pub -O
       - name: Verify signatures of archives
         run: |
-          FILE=./dist/golang-starter_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.extension }}
+          FILE=./dist/wheresmyprompt_${{ matrix.platform }}_${{ matrix.arch }}.${{ matrix.extension }}
           if test -f "${FILE}"; then
             echo "verifying archive: ${FILE}"
-            cosign verify --key golang-starter.pub --signature "${FILE}.sig" "${FILE}"
+            cosign verify --key wheresmyprompt.pub --signature "${FILE}.sig" "${FILE}"
           else
             echo "skipping verifying non-existant archive: ${FILE}"
           fi
@@ -201,7 +219,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
         with:
-          image-ref: 'ghcr.io/toozej/golang-starter:latest'
+          image-ref: 'ghcr.io/toozej/wheresmyprompt:latest'
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
@@ -219,13 +237,13 @@ jobs:
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@main # nosemgrep: yaml.github-actions.security.third-party-action-not-pinned-to-commit-sha.third-party-action-not-pinned-to-commit-sha
-      - name: Get public cosign key for golang-starter project from GitHub
+      - name: Get public cosign key for wheresmyprompt project from GitHub
         run: |
-          curl --silent https://raw.githubusercontent.com/toozej/golang-starter/main/golang-starter.pub -O
+          curl --silent https://raw.githubusercontent.com/toozej/wheresmyprompt/main/wheresmyprompt.pub -O
       - name: Verify signatures of Docker images
         run: |
-          cosign verify --key golang-starter.pub \
-            ${{ matrix.registry }}toozej/golang-starter:${{ matrix.tag }}
+          cosign verify --key wheresmyprompt.pub \
+            ${{ matrix.registry }}toozej/wheresmyprompt:${{ matrix.tag }}
 
   workflow-keepalive:
     if: github.event_name == 'schedule'

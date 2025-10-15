@@ -1,6 +1,7 @@
 # runtime image
 FROM scratch
 # Copy our static executable.
-COPY golang-starter /go/bin/golang-starter
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/wheresmyprompt /go/bin/wheresmyprompt
 # Run the binary.
-ENTRYPOINT ["/go/bin/golang-starter"]
+ENTRYPOINT ["/go/bin/wheresmyprompt"]

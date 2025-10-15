@@ -1,8 +1,8 @@
 ---
 services:
-  golang-starter:
-    container_name: golang-starter
-    image: toozej/golang-starter:latest
+  wheresmyprompt:
+    container_name: wheresmyprompt
+    image: toozej/wheresmyprompt:latest
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -11,11 +11,11 @@ services:
       - "traefik.enable=false"
       # labels below for publishing as web service
       # - "traefik.docker.network=traefik"
-      # - "traefik.http.routers.golang-starter.rule=Host(`golang-starter.test`)"
-      # - "traefik.http.routers.golang-starter.middlewares=http-redirect-https@file,headers@file"
-      # - "traefik.http.routers.golang-starter-secure.entrypoints=https"
-      # - "traefik.http.routers.golang-starter-secure.rule=Host(`golang-starter.test`)"
-      # - "traefik.http.routers.golang-starter-secure.middlewares=headers@file"
-      # - "traefik.http.routers.golang-starter-secure.tls=true"
+      # - "traefik.http.routers.wheresmyprompt.rule=Host(`wheresmyprompt.test`)"
+      # - "traefik.http.routers.wheresmyprompt.middlewares=http-redirect-https@file,headers@file"
+      # - "traefik.http.routers.wheresmyprompt-secure.entrypoints=https"
+      # - "traefik.http.routers.wheresmyprompt-secure.rule=Host(`wheresmyprompt.test`)"
+      # - "traefik.http.routers.wheresmyprompt-secure.middlewares=headers@file"
+      # - "traefik.http.routers.wheresmyprompt-secure.tls=true"
     # networks:
       # - traefik

@@ -1,7 +1,7 @@
 # setup project and deps
-FROM golang:1.24-bookworm AS init
+FROM golang:1.25-bookworm AS init
 
-WORKDIR /go/golang-starter/
+WORKDIR /go/wheresmyprompt/
 
 COPY go.mod* go.sum* ./
 RUN go mod download
@@ -21,11 +21,14 @@ RUN go test -coverprofile c.out -v ./... && \
 FROM init AS build
 ARG LDFLAGS
 
+# Install coreutils for sleep and other utilities utilized in devcontainer
+RUN apt-get update && apt-get install --no-install-recommends -y coreutils=9.1-1
+
 RUN CGO_ENABLED=0 go build -ldflags="${LDFLAGS}"
 
 # runtime image
 FROM scratch
 # Copy our static executable.
-COPY --from=build /go/golang-starter/golang-starter /go/bin/golang-starter
+COPY --from=build /go/wheresmyprompt/wheresmyprompt /go/bin/wheresmyprompt
 # Run the binary.
-ENTRYPOINT ["/go/bin/golang-starter"]
+ENTRYPOINT ["/go/bin/wheresmyprompt"]
