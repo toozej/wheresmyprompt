@@ -28,4 +28,5 @@ COPY --from=build /go/wheresmyprompt/wheresmyprompt /go/bin/wheresmyprompt
 # Expose port for publishing as web service
 # EXPOSE 8081
 # Run the binary.
+USER non-root
 ENTRYPOINT ["/go/bin/wheresmyprompt"]

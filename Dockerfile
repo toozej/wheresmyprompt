@@ -31,4 +31,5 @@ FROM scratch
 # Copy our static executable.
 COPY --from=build /go/wheresmyprompt/wheresmyprompt /go/bin/wheresmyprompt
 # Run the binary.
+USER non-root
 ENTRYPOINT ["/go/bin/wheresmyprompt"]
