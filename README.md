@@ -8,6 +8,8 @@
 
 ![Screenshot](img/avatar.webp)
 
+## ARCHIVED - no longer used
+
 - pronounced with a Shrek accent
 - search prompts stored in a Markdown file (optionally grabbed from Simplenote Note), and use selected prompt as a LLM system prompt
 - designed to be used in a LLM tool pipeline
